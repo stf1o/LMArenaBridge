@@ -630,9 +630,16 @@ async def get_recaptcha_v3_token() -> Optional[str]:
             _m().RECAPTCHA_EXPIRY = datetime.now(timezone.utc) + timedelta(seconds=110)
             return chrome_token
 
+        # Default to headful for better Turnstile/reCAPTCHA reliability; allow override via config.
+        try:
+            headless_value = config.get("camoufox_fetch_headless", None)
+            headless = bool(headless_value) if headless_value is not None else False
+        except Exception:
+            headless = False
+        
         # Use main world (main_world_eval=True) to access wrappedJSObject properly.
         # This bypasses Firefox's Xray wrapper for cross-origin reCAPTCHA objects.
-        async with _m().AsyncCamoufox(headless=True, main_world_eval=True) as browser:
+        async with _m().AsyncCamoufox(headless=headless, main_world_eval=True) as browser:
             context = await browser.new_context()
             if cf_clearance:
                 await context.add_cookies([{

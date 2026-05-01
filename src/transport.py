@@ -1170,9 +1170,9 @@ async def fetch_lmarena_stream_via_camoufox(
         # Default to headful for better Turnstile/reCAPTCHA reliability; allow override via config.
         try:
             headless_value = config.get("camoufox_fetch_headless", None)
-            headless = bool(headless_value) if headless_value is not None else True
+            headless = bool(headless_value) if headless_value is not None else False
         except Exception:
-            headless = True
+            headless = False
 
         async with _m().AsyncCamoufox(headless=headless, main_world_eval=True) as browser:
             context = await browser.new_context(user_agent=user_agent or None)
