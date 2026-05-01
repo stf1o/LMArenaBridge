@@ -1206,17 +1206,38 @@ async def fetch_lmarena_stream_via_camoufox(
                 )
             except Exception:
                 pass
+            # Give the page extra time to fully load and render Cloudflare challenge
+            # This is critical when running in visible mode so user can interact with Turnstile
+            _m().debug_print(" ⏳ Waiting for page to fully load (5 seconds)...")
+            await asyncio.sleep(5)
 
             # Try to handle Cloudflare Turnstile if present
             try:
-                for _ in range(5):
+                for attempt in range(5):
                     title = await page.title()
+                    _m().debug_print(f"  📄 Page title: {title}")
                     if "Just a moment" not in title:
+                        _m().debug_print("  ✅ No Cloudflare challenge detected.")
                         break
+                    _m().debug_print(f"  🖱️  Attempting to click Cloudflare Turnstile... (attempt {attempt+1}/5)")
                     await _m().click_turnstile(page)
                     await asyncio.sleep(2)
-            except Exception:
+            except Exception as e:
+                _m().debug_print(f"  ⚠️ Turnstile click error: {e}")
                 pass
+            
+            # If still showing Cloudflare challenge in headful mode, wait longer for manual interaction
+            if not headless:
+                try:
+                    title = await page.title()
+                    if "Just a moment" in title:
+                        _m().debug_print(" ⚠️ Cloudflare challenge still present. Waiting 25 seconds for manual interaction...")
+                        _m().debug_print(" 👉 Please complete the Turnstile challenge manually in the browser window.")
+                        await asyncio.sleep(25)
+                        _m().debug_print(" ✅ Resuming after manual interaction period.")
+                except Exception:
+                    pass
+
             
             # Check for existing auth cookie
             current_cookie = ""
