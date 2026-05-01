@@ -802,8 +802,16 @@ async def rate_limit_api_key(key: str = Depends(API_KEY_HEADER)):
 
 async def get_initial_data():
     debug_print("Starting initial data retrieval...")
+    config = get_config()
     try:
-        async with AsyncCamoufox(headless=True, main_world_eval=True) as browser:
+        # Default to headful for better Turnstile/reCAPTCHA reliability; allow override via config.
+        try:
+            headless_value = config.get("camoufox_fetch_headless", None)
+            headless = bool(headless_value) if headless_value is not None else False
+        except Exception:
+            headless = False
+        
+        async with AsyncCamoufox(headless=headless, main_world_eval=True) as browser:
             page = await browser.new_page()
             
             # Set up route interceptor BEFORE navigating
