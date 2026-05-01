@@ -1231,11 +1231,30 @@ async def fetch_lmarena_stream_via_camoufox(
                 try:
                     title = await page.title()
                     if "Just a moment" in title:
-                        _m().debug_print(" ⚠️ Cloudflare challenge still present. Waiting 25 seconds for manual interaction...")
+                        _m().debug_print(" ⚠️ Cloudflare challenge still present. Waiting up to 60 seconds for manual interaction...")
                         _m().debug_print(" 👉 Please complete the Turnstile challenge manually in the browser window.")
-                        await asyncio.sleep(25)
-                        _m().debug_print(" ✅ Resuming after manual interaction period.")
-                except Exception:
+                        _m().debug_print(" 💡 The browser will automatically continue once the challenge is passed.")
+                        
+                        # Wait up to 60 seconds, checking every 2 seconds if challenge is resolved
+                        max_wait = 60
+                        check_interval = 2
+                        elapsed = 0
+                        while elapsed < max_wait:
+                            await asyncio.sleep(check_interval)
+                            elapsed += check_interval
+                            try:
+                                current_title = await page.title()
+                                if "Just a moment" not in current_title:
+                                    _m().debug_print(f" ✅ Challenge resolved after {elapsed} seconds! Page title: {current_title}")
+                                    break
+                                else:
+                                    _m().debug_print(f" ⏳ Still waiting... ({elapsed}/{max_wait}s) - Title: {current_title}")
+                            except Exception:
+                                pass
+                        else:
+                            _m().debug_print(" ⚠️ Maximum wait time reached. Attempting to continue anyway...")
+                except Exception as e:
+                    _m().debug_print(f" ⚠️ Error during manual interaction wait: {e}")
                     pass
 
             
